@@ -395,7 +395,6 @@ class PythonProject(Project):
         sphinxopts['version'] = self.version
         sphinxopts['release'] = self.version
 
-        print sphinxopts
         quickstart.ask_user(sphinxopts)
         quickstart.generate(sphinxopts)
 

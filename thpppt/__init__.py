@@ -23,7 +23,8 @@ PYIGNORE = [
     ('bytecode', ['*.py[co]']),
     ('packaging', ['*.egg', '*.egg-info', 'dist', 'eggs', 'parts', 'develop-eggs', 'MANIFEST']),
     ('installer', ['pip-log.txt']),
-    ('testing', ['.coverage', '.tox'])
+    ('testing', ['.coverage', '.tox']),
+    ('documentation', ['doc/build'])
     ]
 
 ROOT = ffs.Path(__file__).parent
@@ -351,7 +352,7 @@ class PythonProject(Project):
         package = self.root + self.name
         package.mkdir()
         self.render(package + '_version.py', 'pyversion')
-        self.render(package + '__init__. py', 'pyinit')
+        self.render(package + '__init__.py', 'pyinit')
 
         setupdict = {}
         for var in ['author', 'email', 'url', 'description']:

@@ -1,8 +1,14 @@
 import re
+import os
 
 from distutils.core import setup
 
-VERSION_FILE = "{{name}}/_version.py"
+here = os.path.abspath(os.path.dirname(__file__))
+README = open(os.path.join(here, 'README.txt')).read()
+CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
+
+
+VERSION_FILE = os.path.join(here, "{{name}}/_version.py")
 verstrline = open(VERSION_FILE, "rt").read()
 VSRE = r'^__version__ = [\'"]([^\'"]*)[\'"]'
 mo = re.search(VSRE,  verstrline, re.M)
@@ -18,7 +24,7 @@ setup(
     {% if email %}author_email = "{{email}}",{%endif%}
     {% if url %}url = "{{url}}",{%endif%}
     {% if description %}description = "{{description}}",{%endif%}
-    long_description = open('README.rst').read() + "\n\n" +  open('HISTORY.rst').read(),
+    long_description = README + "\n\n" + CHANGES,
     classifiers = [
         "Programming Language :: Python",
         "Programming Language :: Python :: 2.7",

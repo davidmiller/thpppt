@@ -1,8 +1,13 @@
 import re
+import os
 
 from distutils.core import setup
 
-VERSION_FILE = "thpppt/_version.py"
+here = os.path.abspath(os.path.dirname(__file__))
+README = open(os.path.join(here, 'README.rst')).read()
+CHANGES = open(os.path.join(here, 'HISTORY.rst')).read()
+
+VERSION_FILE = os.path.join(here, "thpppt/_version.py")
 verstrline = open(VERSION_FILE, "rt").read()
 VSRE = r'^__version__ = [\'"]([^\'"]*)[\'"]'
 mo = re.search(VSRE,  verstrline, re.M)
@@ -18,7 +23,7 @@ setup(
     author_email = "david@deadpansincerity.com",
     url = "www.deadpansincerity.com",
     description = "THPPPT!",
-    long_description = open('README.rst').read() + "\n\n" +  open('HISTORY.rst').read(),
+    long_description = README + "\n\n" + CHANGES,
     classifiers = [
         "Programming Language :: Python",
         "Programming Language :: Python :: 2.7",
@@ -29,4 +34,9 @@ setup(
         "Topic :: Software Development :: Libraries"
         ],
     packages = ['thpppt'],
+    entry_points =  {
+        'console_scripts': [
+            'thpppt = thpppt:main'
+            ]
+        }
     )

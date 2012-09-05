@@ -27,9 +27,16 @@ PYIGNORE = [
     ('documentation', ['doc/build'])
     ]
 
+EMACSIGNORE = [
+    ('bytecode', ['*.elc'])
+    ]
+
 ROOT = ffs.Path(__file__).parent
 TEMPL = ROOT + 'templates'
 args = None
+
+class Error(Exception): pass
+class TemplateNotFoundError(Error): pass
 
 class IniParser(ConfigParser.SafeConfigParser):
     """
@@ -84,6 +91,7 @@ def render(path, template, variables = {}):
     Render TEMPLATE at PATH, interpolating VARIABLES.
 
     We pass dotfile implicitly.
+    We look in templates/flavour, before templates for our template.
 
     Arguments:
     - `path`: Path
@@ -94,7 +102,12 @@ def render(path, template, variables = {}):
     Exceptions: None
     """
     variables['dotfile'] = dotfile
-    tpl = TEMPL + '{0}.jinja2'.format(template)
+    tplname = '{0}.jinja2'.format(template)
+    tpl = TEMPL + [args.flavour + tplname]
+    if not tpl:
+        tpl = TEMPL + tplname
+    if not tpl:
+        raise TemplateNotFoundError('Could not find {0}'.format(tplname))
     template = jinja2.Template(tpl.contents)
     contents = template.render(**variables)
     path << contents
@@ -266,7 +279,8 @@ class Project(object):
         """
         self.name = name
         self.root = ffs.Path(name).abspath
-        if vcs:
+        self.readme_file = None
+        if vcs and not args.novcs:
             vcs = get_vcs(vcs)
             self.vcs = vcs(self.root)
         else:
@@ -302,7 +316,7 @@ class Project(object):
         """
         Render TEMPLATE to PATH, passing **KW
 
-        Implicitly add name and version to the template variables.
+        Implicitly add name, version, vcs, README to the template variables.
 
         Arguments:
         - `path`: Path
@@ -314,7 +328,9 @@ class Project(object):
         """
         variables = {
             'name': self.name,
-            'version': self.version
+            'version': self.version,
+            'readme': self.readme_file,
+            'vcs': self.vcs and self.vcs.cmd else '',
             }
         variables.update(kw)
         render(path, template, variables)
@@ -326,7 +342,10 @@ class Project(object):
 
         This will as a minimum, create a README in ROOT and a doc directory
         """
-        self.root.touch('README')
+        readme_ext = variable('readme', '')
+        extension =  readme_ext and '.' + readme_ext or ''
+        self.readme_file
+        self.root.touch('README{0}'.format(extension))
         self.root.mkdir('doc')
         return
 
@@ -411,6 +430,27 @@ class PythonProject(Project):
             self.sphinx()
         return
 
+class EmacsProject(Project):
+    """
+    Start an Emacs Lisp project.
+    """
+
+    def init(self):
+        """
+        Project.init() then...
+
+        * Add a packege.el file
+        * Add the Emacs Rakefile template
+        * Add Emacs things to the VCS ignores
+        """
+        super(EmacsProject, self).init()
+        pkgfile = self.root + '{0}-package.el'.format(self.name)
+        self.render(pkgfile, 'pkg')
+        self.render(self.root + 'Rakefile', 'rakefile')
+        if self.vcs:
+            for section, patterns in EMACSIGNORE:
+                self.vcs.ignore(*patterns, explanation=section)
+
 
 def main_python():
     """
@@ -447,7 +487,8 @@ def main():
     pyparser.add_argument('-v', '--version', help='Version to start the project at')
     pyparser.add_argument('--directory', help='Directory to start the project in')
     pyparser.add_argument('--vcs', help="Version Control System to use. Options: git hg")
-    pyparser.add_argument('--novcs', help="Do not enable a VCS system")
+    pyparser.add_argument('--novcs', help="Do not enable a VCS system. This can only be set from \
+the commandline, and overrides any other vcs arguments.")
     pyparser.add_argument('--author', help="Author of this project")
     pyparser.add_argument('--email', help="Contact email for this project")
     pyparser.add_argument('--url', help="URL for this project")

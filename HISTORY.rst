@@ -2,7 +2,8 @@
 +++++
 Actually dsitribute file templates as part of the package.
 
-Add Elisp projects
+Add Elisp projects.
+Add Licensing and build system stubs
 
 0.0.1
 +++++

@@ -5,6 +5,7 @@ import ConfigParser
 import datetime
 import sys
 import traceback
+import warnings
 
 import argparse
 import envoy
@@ -33,7 +34,7 @@ EMACSIGNORE = [
 
 ROOT = ffs.Path(__file__).parent
 TEMPL = ROOT + 'templates'
-args = None
+
 
 class Error(Exception): pass
 class TemplateNotFoundError(Error): pass
@@ -86,12 +87,13 @@ _dotpath = ffs.Path('~/.thpppt').abspath
 if _dotpath:
     dotfile.readfp(_dotpath)
 
-def render(path, template, variables = {}):
+def render(path, template, variables = {}, searchpath = []):
     """
     Render TEMPLATE at PATH, interpolating VARIABLES.
 
     We pass dotfile implicitly.
     We look in templates/flavour, before templates for our template.
+    If SEARCHPATH is defined, we look there frist.
 
     Arguments:
     - `path`: Path
@@ -103,7 +105,14 @@ def render(path, template, variables = {}):
     """
     variables['dotfile'] = dotfile
     tplname = '{0}.jinja2'.format(template)
-    tpl = TEMPL + [args.flavour + tplname]
+    tpl = None
+    if searchpath:
+        for p in searchpath:
+           tpl = p + tplname
+           if tpl:
+               break
+    if not tpl:
+        tpl = TEMPL + [args.flavour, tplname]
     if not tpl:
         tpl = TEMPL + tplname
     if not tpl:
@@ -298,6 +307,8 @@ class Project(object):
 
         * Create root directory
         * Initialize a VCS
+        * If we have configured a build system stub, set that up
+        * If we have configured a license, add that.
         * Create a Readme
         * Create a Documentation stub
         """
@@ -309,14 +320,17 @@ class Project(object):
             for section, patterns in IGNORE:
                 self.vcs.ignore(*patterns, explanation=section)
 
+        self.build_system()
+        self.license()
         self.document()
         return
 
-    def render(self, path, template, **kw):
+    def render(self, path, template, searchpath=[], **kw):
         """
         Render TEMPLATE to PATH, passing **KW
 
         Implicitly add name, version, vcs, README to the template variables.
+        If searchpath is non-null, look in these directories for templates as well.
 
         Arguments:
         - `path`: Path
@@ -333,7 +347,7 @@ class Project(object):
             'vcs': self.vcs.cmd if self.vcs else '',
             }
         variables.update(kw)
-        render(path, template, variables)
+        render(path, template, variables, searchpath=searchpath)
         return
 
     def document(self):
@@ -348,6 +362,33 @@ class Project(object):
         self.root.touch('README{0}'.format(extension))
         self.root.mkdir('doc')
         return
+
+    def license(self):
+        """
+        Add a COPYING.txt to our project's root.
+
+        Return: None
+        Exceptions: None
+        """
+        license = variable('license', None)
+        if license:
+            self.render(self.root + 'COPYING.txt', license, searchpath=[TEMPL + 'licenses'])
+
+    def build_system(self):
+        """
+        Create an entrypoint for our build system of choice.
+
+        Return: None
+        Exceptions: None
+        """
+        buildmap = {
+            'rake': ('Rakefile', 'rakefile'),
+            'make': ('Makefile', 'makefile')
+            }
+        buildsys = variable('build-system', None)
+        if buildsys:
+            filename, tplname = buildmap[buildsys]
+            self.render(self.root + filename, tplname)
 
 
 class PythonProject(Project):
@@ -384,7 +425,7 @@ class PythonProject(Project):
                 self.vcs.ignore(*patterns, explanation=section)
         return
 
-    def sphinx():
+    def sphinx(self):
         """
         Initialize Sphinx documentation for this project.
 
@@ -439,14 +480,14 @@ class EmacsProject(Project):
         """
         Project.init() then...
 
+        * Add the source file
         * Add a packege.el file
-        * Add the Emacs Rakefile template
         * Add Emacs things to the VCS ignores
         """
         super(EmacsProject, self).init()
+        self.root.touch('{0}.el'.format(self.name))
         pkgfile = self.root + '{0}-package.el'.format(self.name)
         self.render(pkgfile, 'pkg')
-        self.render(self.root + 'Rakefile', 'rakefile')
         if self.vcs:
             for section, patterns in EMACSIGNORE:
                 self.vcs.ignore(*patterns, explanation=section)
@@ -501,12 +542,14 @@ def main():
     """
     globalargs = [
         [('name', ), dict(help='Name of the project')],
+        [('-b', '--build-system'), dict(help='Build system to use', choices=['rake', 'make'])],
         [('-d', '--description'), dict(help='Short description of this project')],
+        [('-l', '--license'), dict(help='License to use', choices = ['apache', 'gpl', 'lgpl'])],
         [('-v', '--version'), dict(help='Version to start the project at')],
         [('--directory', ), dict(help='Directory to start the project in')],
         [('--vcs', ), dict(help="Version Control System to use. Options: git hg")],
         [('--novcs', ), dict(help="Do not enable a VCS system. This can only be set from the commandline\
- and overrides any other vcs arguments.")],
+ and overrides any other vcs arguments.", action = "store_true")],
         [('--author', ), dict(dict(help="Author of this project"))],
         [('--email', ), dict(help="Contact email for this project")],
         [('--url', ), dict(help="URL for this project")],
@@ -519,7 +562,8 @@ def main():
     pyparser = subparsers.add_parser('python', help='Start a Python project',
                                      description = "Start a shiny Python project!")
     [pyparser.add_argument(*args, **kwargs)for args, kwargs in globalargs]
-    pyparser.add_argument('--nosphinx', help='Do not initialize Sphinx documentation')
+    pyparser.add_argument('--nosphinx', help='Do not initialize Sphinx documentation',
+                          action = "store_true")
     pyparser.set_defaults(func=main_python, flavour='python')
 
     emacsparser = subparsers.add_parser('emacs', help='Start an Emacs Lisp project',

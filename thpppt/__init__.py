@@ -330,7 +330,7 @@ class Project(object):
             'name': self.name,
             'version': self.version,
             'readme': self.readme_file,
-            'vcs': self.vcs and self.vcs.cmd else '',
+            'vcs': self.vcs.cmd if self.vcs else '',
             }
         variables.update(kw)
         render(path, template, variables)
@@ -452,9 +452,13 @@ class EmacsProject(Project):
                 self.vcs.ignore(*patterns, explanation=section)
 
 
-def main_python():
+def startproject(klass):
     """
-    Start a Python project
+    Start a KLASS project
+
+
+    Arguments:
+    - `klass`: Project
 
     Return: None
     Exceptions: None
@@ -467,33 +471,61 @@ def main_python():
     if version:
         kw['version'] = version
 
-    proj = PythonProject(args.name, **kw)
+    proj = klass(args.name, **kw)
     proj.init()
+    return
+
+def main_python():
+    """
+    Start a Python project
+
+    Return: int
+    Exceptions: None
+    """
+    startproject(PythonProject)
+    return 0
+
+def main_emacs():
+    """
+    Start an Emacs Project
+
+    Return: int
+    Exceptions: None
+    """
+    startproject(EmacsProject)
     return 0
 
 def main():
     """
     The commandline entrypoint to the program
     """
+    globalargs = [
+        [('name', ), dict(help='Name of the project')],
+        [('-d', '--description'), dict(help='Short description of this project')],
+        [('-v', '--version'), dict(help='Version to start the project at')],
+        [('--directory', ), dict(help='Directory to start the project in')],
+        [('--vcs', ), dict(help="Version Control System to use. Options: git hg")],
+        [('--novcs', ), dict(help="Do not enable a VCS system. This can only be set from the commandline\
+ and overrides any other vcs arguments.")],
+        [('--author', ), dict(dict(help="Author of this project"))],
+        [('--email', ), dict(help="Contact email for this project")],
+        [('--url', ), dict(help="URL for this project")],
+        ]
+
     description = "Thpppt: Let's build something shiny!"
     parser = argparse.ArgumentParser(description=description)
     subparsers = parser.add_subparsers(title='Commands')
 
-    pyparser = subparsers.add_parser('python', help='Start a Python project')
-
-    pyparser.add_argument('name', help='Name of the project')
-
-    pyparser.add_argument('-d', '--description', help='Short description of this project')
-    pyparser.add_argument('-v', '--version', help='Version to start the project at')
-    pyparser.add_argument('--directory', help='Directory to start the project in')
-    pyparser.add_argument('--vcs', help="Version Control System to use. Options: git hg")
-    pyparser.add_argument('--novcs', help="Do not enable a VCS system. This can only be set from \
-the commandline, and overrides any other vcs arguments.")
-    pyparser.add_argument('--author', help="Author of this project")
-    pyparser.add_argument('--email', help="Contact email for this project")
-    pyparser.add_argument('--url', help="URL for this project")
+    pyparser = subparsers.add_parser('python', help='Start a Python project',
+                                     description = "Start a shiny Python project!")
+    [pyparser.add_argument(*args, **kwargs)for args, kwargs in globalargs]
     pyparser.add_argument('--nosphinx', help='Do not initialize Sphinx documentation')
     pyparser.set_defaults(func=main_python, flavour='python')
+
+    emacsparser = subparsers.add_parser('emacs', help='Start an Emacs Lisp project',
+                                        description="Start a shiny Emacs Lisp project!")
+    [emacsparser.add_argument(*args, **kwargs)for args, kwargs in globalargs]
+    emacsparser.set_defaults(func=main_emacs, flavour='emacs')
 
     global args
     args = parser.parse_args()

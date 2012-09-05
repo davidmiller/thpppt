@@ -365,16 +365,14 @@ class PythonProject(Project):
                 self.vcs.ignore(*patterns, explanation=section)
         return
 
-    def document(self):
+    def sphinx():
         """
-        Do the standard documentation stuff, then:
+        Initialize Sphinx documentation for this project.
 
-        * Run sphinx-quickstart
 
         Return: None
         Exceptions: None
         """
-        super(PythonProject, self).document()
         try:
             from sphinx import quickstart
         except ImportError:
@@ -397,6 +395,22 @@ class PythonProject(Project):
 
         quickstart.ask_user(sphinxopts)
         quickstart.generate(sphinxopts)
+        return
+
+    def document(self):
+        """
+        Do the standard documentation stuff, then:
+
+        * Run sphinx-quickstart
+
+        Return: None
+        Exceptions: None
+        """
+        super(PythonProject, self).document()
+        if not args.nosphinx:
+            self.sphinx()
+        return
+
 
 def main_python():
     """
@@ -425,16 +439,19 @@ def main():
     parser = argparse.ArgumentParser(description=description)
     subparsers = parser.add_subparsers(title='Commands')
 
-    parser.add_argument('-d', '--description', help='Short description of this project')
-    parser.add_argument('-v', '--version', help='Version to start the project at')
-    parser.add_argument('--directory', help='Directory to start the project in')
-    parser.add_argument('--vcs', help="Version Control System to use. Options: git hg")
-    parser.add_argument('--author', help="Author of this project")
-    parser.add_argument('--email', help="Contact email for this project")
-    parser.add_argument('--url', help="URL for this project")
-
     pyparser = subparsers.add_parser('python', help='Start a Python project')
+
     pyparser.add_argument('name', help='Name of the project')
+
+    pyparser.add_argument('-d', '--description', help='Short description of this project')
+    pyparser.add_argument('-v', '--version', help='Version to start the project at')
+    pyparser.add_argument('--directory', help='Directory to start the project in')
+    pyparser.add_argument('--vcs', help="Version Control System to use. Options: git hg")
+    pyparser.add_argument('--novcs', help="Do not enable a VCS system")
+    pyparser.add_argument('--author', help="Author of this project")
+    pyparser.add_argument('--email', help="Contact email for this project")
+    pyparser.add_argument('--url', help="URL for this project")
+    pyparser.add_argument('--nosphinx', help='Do not initialize Sphinx documentation')
     pyparser.set_defaults(func=main_python, flavour='python')
 
     global args

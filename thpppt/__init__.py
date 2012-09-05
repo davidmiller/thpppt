@@ -5,7 +5,6 @@ import ConfigParser
 import datetime
 import sys
 import traceback
-import warnings
 
 import argparse
 import envoy
@@ -547,7 +546,7 @@ def main():
         [('-l', '--license'), dict(help='License to use', choices = ['apache', 'gpl', 'lgpl'])],
         [('-v', '--version'), dict(help='Version to start the project at')],
         [('--directory', ), dict(help='Directory to start the project in')],
-        [('--vcs', ), dict(help="Version Control System to use. Options: git hg")],
+        [('--vcs', ), dict(help="Version Control System to use.", choices = ['git', 'hg'])],
         [('--novcs', ), dict(help="Do not enable a VCS system. This can only be set from the commandline\
  and overrides any other vcs arguments.", action = "store_true")],
         [('--author', ), dict(dict(help="Author of this project"))],

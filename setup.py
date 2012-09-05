@@ -16,6 +16,16 @@ if mo:
 else:
     raise RuntimeError("Unable to find version string in {0}".format(VERSION_FILE))
 
+def get_template_dirs():
+    tpldirs = ['templates/*.jinja2']
+    killit = os.path.join(here, 'thpppt') + '/'
+    for root, dirs, files in os.walk(os.path.join(here, 'thpppt/templates')):
+        for subdir in dirs:
+            tpldirs.append('{0}/*.jinja2'.format(os.path.join(root, subdir).replace(killit, '')))
+    return tpldirs
+
+print get_template_dirs()
+
 setup(
     name = "thpppt",
     version = VERSION,
@@ -24,6 +34,10 @@ setup(
     url = "www.deadpansincerity.com",
     description = "THPPPT!",
     long_description = README + "\n\n" + CHANGES,
+    install_requires = [
+#        'argparse',
+#        'envoy'
+        ],
     classifiers = [
         "Programming Language :: Python",
         "Programming Language :: Python :: 2.7",
@@ -34,6 +48,10 @@ setup(
         "Topic :: Software Development :: Libraries"
         ],
     packages = ['thpppt'],
+    include_package_data = True,
+    package_data = {
+        'thpppt': get_template_dirs(),
+        },
     entry_points =  {
         'console_scripts': [
             'thpppt = thpppt:main'

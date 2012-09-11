@@ -36,7 +36,9 @@ setup(
     long_description = README + "\n\n" + CHANGES,
     install_requires = [
         'argparse',
-        'envoy'
+        'envoy',
+        'ffs',
+        'jinja2',
         ],
     classifiers = [
         "Programming Language :: Python",

@@ -35,8 +35,8 @@ setup(
     description = "THPPPT!",
     long_description = README + "\n\n" + CHANGES,
     install_requires = [
-#        'argparse',
-#        'envoy'
+        'argparse',
+        'envoy'
         ],
     classifiers = [
         "Programming Language :: Python",

@@ -315,6 +315,7 @@ class Project(object):
         * If we have configured a license, add that.
         * Create a Readme
         * Create a Documentation stub
+        * Create Test scaffold
         """
         if not self.root.is_dir and not self.root:
             self.root.mkdir()
@@ -327,6 +328,7 @@ class Project(object):
         self.build_system()
         self.license()
         self.document()
+        self.tests()
         return
 
     def render(self, path, template, searchpath=[], **kw):
@@ -344,10 +346,14 @@ class Project(object):
         Return: None
         Exceptions: None
         """
+        readme_ext = variable('readme', '')
+        extension =  readme_ext and '.' + readme_ext or ''
+
         variables = {
             'name': self.name,
             'version': self.version,
             'readme': self.readme_file,
+            'readme_ext': extension,
             'vcs': self.vcs.cmd if self.vcs else '',
             }
         variables.update(kw)
@@ -364,6 +370,7 @@ class Project(object):
         extension =  readme_ext and '.' + readme_ext or ''
         self.readme_file
         self.root.touch('README{0}'.format(extension))
+        self.root.touch('CHANGES{0}'.format(extension))
         self.root.mkdir('doc')
         return
 
@@ -394,6 +401,11 @@ class Project(object):
             filename, tplname = buildmap[buildsys]
             self.render(self.root + filename, tplname)
 
+    def tests(self):
+        """
+        Create the scaffolding for our test suite.
+        """
+        self.root.mkdir('test/integration','test/fixtures', parents=True)
 
 class PythonProject(Project):
     """
@@ -626,4 +638,5 @@ def main():
 
 if __name__ == '__main__':
     retval = main()
+    # !!! Rollback
     sys.exit(retval)

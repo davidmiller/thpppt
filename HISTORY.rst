@@ -1,3 +1,7 @@
+0.0.4
++++++
+Add virtualenv to Python projects
+
 0.0.3 (Sep 11 2012)
 +++++++++++++++++++
 

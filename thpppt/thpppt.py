@@ -41,6 +41,7 @@ TEMPL = ROOT + 'templates'
 
 class Error(Exception): pass
 class TemplateNotFoundError(Error): pass
+class ExecutableNotFoundError(Error): pass
 
 class IniParser(ConfigParser.SafeConfigParser):
     """
@@ -405,7 +406,7 @@ class Project(object):
         """
         Create the scaffolding for our test suite.
         """
-        self.root.mkdir('test/integration','test/fixtures', parents=True)
+        self.root.mkdir('test/integration','test/fixtures')
 
 class PythonProject(Project):
     """
@@ -422,6 +423,7 @@ class PythonProject(Project):
         * Add a MANIFEST.in
         * Add a blank requirements.txt
         * Add standard Python things to the VCS ignorefile.
+        * Add a Virtualenv.
 
         Return:
         Exceptions:
@@ -441,6 +443,8 @@ class PythonProject(Project):
         if self.vcs:
             for section, patterns in PYIGNORE:
                 self.vcs.ignore(*patterns, explanation=section)
+
+                #        self.virtualenv()
         return
 
     def sphinx(self):
@@ -488,6 +492,25 @@ class PythonProject(Project):
         if not args.nosphinx:
             self.sphinx()
         return
+
+    def virtualenv(self):
+        """
+        Create a virtualenv.
+
+        Attempt to use virtualenwrapper.
+
+        Complain loudly if that fails
+
+        Return:
+        Exceptions:
+        """
+        cmd = 'mkvirtualenv -a {0} {1}'.format(self.root, self.name)
+        resp = envoy.run(cmd)
+        if resp.status_code != 0:
+            print resp.stderr
+            print "Srsly, you should look into the excellent virtualenvwrapper"
+            raise ExecutableNotFoundError('mkvirtualenv')
+
 
 class EmacsProject(Project):
     """
